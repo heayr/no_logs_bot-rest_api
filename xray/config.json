@@ -1,1 +1,75 @@
-{}
+{
+  "log": {
+    "loglevel": "warning"
+  },
+  "inbounds": [
+    {
+      "port": 443,
+      "listen": "0.0.0.0",
+      "protocol": "vless",
+      "tag": "vpn-in",
+      "settings": {
+        "decryption": "none",
+        "clients": [
+          {
+            "id": "585e4fb0-cfc8-46ce-890e-0e826abfc9bc",
+            "flow": "xtls-rprx-vision",
+            "email": "user_585e4fb0@vpn"
+          },
+          {
+            "id": "61caad09-b139-4e9e-9584-75afd62fe4b6",
+            "flow": "xtls-rprx-vision",
+            "email": "user_61caad09@vpn"
+          },
+          {
+            "id": "40a09d27-a0b3-44d9-aaac-a6e344f30ba2",
+            "flow": "xtls-rprx-vision",
+            "email": "user_40a09d27@vpn"
+          },
+          {
+            "id": "531b9bb9-7b8f-4b35-be99-49748a9e1e36",
+            "flow": "xtls-rprx-vision",
+            "email": "user_531b9bb9@vpn"
+          },
+          {
+            "id": "7446a3df-ebf7-48af-ad6e-04e66638621c",
+            "flow": "xtls-rprx-vision",
+            "email": "user_7446a3df@vpn"
+          },
+          {
+            "id": "f4797602-44a4-4b91-8a65-0383421d02e5",
+            "flow": "xtls-rprx-vision",
+            "email": "user_f4797602@vpn"
+          },
+          {
+            "id": "a33eb428-3ba5-4b45-b321-7395bfd74957",
+            "flow": "xtls-rprx-vision",
+            "email": "user_a33eb428@vpn"
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "dest": "www.cloudflare.com:443",
+          "xver": 0,
+          "serverNames": [
+            "www.cloudflare.com"
+          ],
+          "privateKey": "kLLAB-gtl6PCBfKaFpzY-g4GAtTWccZftsNKYxktbVY",
+          "shortIds": [
+            "02f679de"
+          ]
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {}
+    }
+  ]
+}

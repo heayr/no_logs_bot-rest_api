@@ -7,8 +7,12 @@ from bot.bot import dp, bot
 from core.config import settings
 from db.session import init_db
 from bot.handlers import register_handlers
+from api.routes import users, health
 
-app = FastAPI(title="VPN Bot API")
+app = FastAPI(title="No Logs Bot")
+
+app.include_router(users.router)
+app.include_router(health.router)
 
 @app.on_event("startup")
 async def startup():
