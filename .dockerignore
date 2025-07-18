@@ -1,0 +1,7 @@
+*.log
+*.old
+__pycache__/
+*.pyc
+*.db
+.env
+xray/logs/

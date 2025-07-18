@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  vpn-bot:
+    build: .
+    container_name: vpn_bot
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  xray:
+    image: teddysun/xray
+    container_name: xray
+    volumes:
+      - ./xray:/etc/xray
+    ports:
+      - "443:443"
+    restart: unless-stopped
