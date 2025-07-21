@@ -15,26 +15,6 @@
             "id": "585e4fb0-cfc8-46ce-890e-0e826abfc9bc",
             "flow": "xtls-rprx-vision",
             "email": "user_585e4fb0@vpn"
-          },
-          {
-            "id": "61caad09-b139-4e9e-9584-75afd62fe4b6",
-            "flow": "xtls-rprx-vision",
-            "email": "user_61caad09@vpn"
-          },
-          {
-            "id": "63d7e1c3-e94c-417d-8900-3137a18fa7ce",
-            "flow": "xtls-rprx-vision",
-            "email": "user_63d7e1c3@vpn"
-          },
-          {
-            "id": "be41e175-d31e-4c6f-814c-12c19a448330",
-            "flow": "xtls-rprx-vision",
-            "email": "user_be41e175@vpn"
-          },
-          {
-            "id": "a9256e57-aad0-4086-8b42-068e1634d1c3",
-            "flow": "xtls-rprx-vision",
-            "email": "user_a9256e57@vpn"
           }
         ]
       },

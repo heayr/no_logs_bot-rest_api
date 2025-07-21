@@ -2,8 +2,7 @@ import asyncio
 import logging
 from datetime import datetime
 from db.session import get_connection
-from bot.services.user_config_service import delete_user  # async функция удаления пользователя
-from db.crud.user_crud import delete_user_by_uuid
+from bot.services.full_user_removal import full_remove_user
 
 async def remove_expired_users():
     logging.info("🧹 Проверка истёкших пользователей...")
@@ -23,7 +22,7 @@ async def remove_expired_users():
     for (uuid,) in expired:
         try:
             logging.info(f"Удаляем пользователя с uuid={uuid}")
-            delete_user_by_uuid(uuid)
+            await full_remove_user(uuid)  # <--- правильный отступ
         except Exception as e:
             logging.error(f"❌ Ошибка при удалении {uuid}: {e}")
 

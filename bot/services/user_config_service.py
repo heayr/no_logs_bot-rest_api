@@ -1,18 +1,20 @@
+#/bot/services/user_config_service.py
+
 import asyncio
 import logging
 from datetime import datetime, timedelta
 from uuid import uuid4
 
 from core.config import settings
-from bot.services.xray_service import add_client
+from bot.services.xray_service import add_client, remove_client 
 from db.crud.user_crud import save_user
 from utils.formatters import generate_vless_link, format_expiration_message
-from bot.services.xray_service import remove_client 
 
-async def create_test_user(tg_id: int = 0) -> str:
+
+async def create_test_user(tg_id: int = 0, minutes: int = 1) -> str:
     uid = str(uuid4())
-    expires = datetime.utcnow() + timedelta(days=settings.TEST_DAYS)
-
+    #expires = datetime.utcnow() + timedelta(days=settings.TEST_DAYS) #временно переделаем на 1 минуту
+    expires = datetime.utcnow() + timedelta(minutes=minutes)
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, add_client, uid)
     await loop.run_in_executor(None, save_user, tg_id, uid, expires)
@@ -28,6 +30,26 @@ async def create_test_user(tg_id: int = 0) -> str:
     message = format_expiration_message(link, days)
 
     logging.info(f"Created test user {uid} (tg_id={tg_id})")
+    return message
+
+async def create_paid_user(tg_id: int = 0, days: int = 30) -> str:
+    uid = str(uuid4())
+    expires = datetime.utcnow() + timedelta(days=settings.PAID_DAYS)
+
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, add_client, uid)
+    await loop.run_in_executor(None, save_user, tg_id, uid, expires)
+
+    host = settings.AVAILABLE_IPS[0]
+    pbk = settings.XRAY_PUBLIC_KEY
+    sid = settings.XRAY_SHORT_ID
+    sni = settings.XRAY_SNI
+    port = 443
+
+    link = generate_vless_link(uid, host, port, pbk, sid, sni)
+    message = format_expiration_message(link, days)
+
+    logging.info(f"Created paid user {uid} (tg_id={tg_id}, expires={expires})")
     return message
 
 async def delete_user(uuid: str) -> bool:

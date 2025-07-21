@@ -1,4 +1,4 @@
-# app/bot/services/xray_service.py
+# bot/services/xray_service.py
 
 import json
 from core.config import settings
