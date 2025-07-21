@@ -7,6 +7,7 @@ from core.config import settings
 from bot.services.xray_service import add_client
 from db.crud.user_crud import save_user
 from utils.formatters import generate_vless_link, format_expiration_message
+from bot.services.xray_service import remove_client 
 
 async def create_test_user(tg_id: int = 0) -> str:
     uid = str(uuid4())
@@ -28,3 +29,14 @@ async def create_test_user(tg_id: int = 0) -> str:
 
     logging.info(f"Created test user {uid} (tg_id={tg_id})")
     return message
+
+async def delete_user(uuid: str) -> bool:
+    loop = asyncio.get_running_loop()
+
+    # Удаляем из xray config
+    removed_from_xray = await loop.run_in_executor(None, remove_client, uuid)
+
+    # Удаляем из базы
+    deleted_from_db = await loop.run_in_executor(None, delete_user_by_uuid, uuid)
+
+    return removed_from_xray and deleted_from_db

@@ -8,6 +8,8 @@ from uuid import uuid4
 from pathlib import Path
 from core.config import settings
 
+CONFIG_PATH=Path(settings.XRAY_CONFIG_PATH)
+
 def _load_config() -> dict:
     path = Path(settings.XRAY_CONFIG_PATH)
     if not path.exists():
@@ -54,4 +56,32 @@ def _reload_xray():
             logging.info("Xray container restarted")
         except subprocess.CalledProcessError as e:
             logging.error(f"Не удалось перезапустить контейнер Xray: {e}")
-       
+
+
+
+def remove_client(uuid: str) -> bool:
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            config = json.load(f)
+
+        modified = False
+
+        # Проходим по всем inbound и удаляем клиента с данным UUID
+        for inbound in config.get("inbounds", []):
+            clients = inbound.get("settings", {}).get("clients", [])
+            new_clients = [c for c in clients if c.get("id") != uuid]
+
+            if len(new_clients) != len(clients):
+                inbound["settings"]["clients"] = new_clients
+                modified = True
+
+        if modified:
+            with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=2)
+            return True
+
+        return False  # Клиент не найден
+
+    except Exception as e:
+        print(f"Ошибка при удалении клиента: {e}")
+        return False

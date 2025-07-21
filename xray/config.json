@@ -22,49 +22,19 @@
             "email": "user_61caad09@vpn"
           },
           {
-            "id": "40a09d27-a0b3-44d9-aaac-a6e344f30ba2",
+            "id": "63d7e1c3-e94c-417d-8900-3137a18fa7ce",
             "flow": "xtls-rprx-vision",
-            "email": "user_40a09d27@vpn"
+            "email": "user_63d7e1c3@vpn"
           },
           {
-            "id": "531b9bb9-7b8f-4b35-be99-49748a9e1e36",
+            "id": "be41e175-d31e-4c6f-814c-12c19a448330",
             "flow": "xtls-rprx-vision",
-            "email": "user_531b9bb9@vpn"
+            "email": "user_be41e175@vpn"
           },
           {
-            "id": "7446a3df-ebf7-48af-ad6e-04e66638621c",
+            "id": "a9256e57-aad0-4086-8b42-068e1634d1c3",
             "flow": "xtls-rprx-vision",
-            "email": "user_7446a3df@vpn"
-          },
-          {
-            "id": "f4797602-44a4-4b91-8a65-0383421d02e5",
-            "flow": "xtls-rprx-vision",
-            "email": "user_f4797602@vpn"
-          },
-          {
-            "id": "a33eb428-3ba5-4b45-b321-7395bfd74957",
-            "flow": "xtls-rprx-vision",
-            "email": "user_a33eb428@vpn"
-          },
-          {
-            "id": "573fddbd-f4d2-48ae-ab4b-20d940d593b1",
-            "flow": "xtls-rprx-vision",
-            "email": "user_573fddbd@vpn"
-          },
-          {
-            "id": "bc625645-5b84-4adc-a443-834d0f377c9b",
-            "flow": "xtls-rprx-vision",
-            "email": "user_bc625645@vpn"
-          },
-          {
-            "id": "17b6df08-e018-4a59-9f8c-f4650cd85c8d",
-            "flow": "xtls-rprx-vision",
-            "email": "user_17b6df08@vpn"
-          },
-          {
-            "id": "b3af0c44-f48c-499e-b37b-58fb8c1e3209",
-            "flow": "xtls-rprx-vision",
-            "email": "user_b3af0c44@vpn"
+            "email": "user_a9256e57@vpn"
           }
         ]
       },
