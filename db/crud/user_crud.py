@@ -38,3 +38,65 @@ def get_user_by_uuid(uuid: str):
             "expires_at": datetime.fromisoformat(row[3]),
         }
     return None
+
+def get_user_by_tg_id(tg_id: int):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT id, telegram_id, uuid, expires_at FROM users WHERE telegram_id = ?", (tg_id,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return {
+            "id": row[0],
+            "telegram_id": row[1],
+            "uuid": row[2],
+            "expires_at": datetime.fromisoformat(row[3]),
+        }
+    return None
+
+def get_active_user_by_tg_id(tg_id: int):
+    conn = get_connection()
+    c = conn.cursor()
+    now_iso = datetime.utcnow().isoformat()
+    c.execute(
+        "SELECT id, telegram_id, uuid, expires_at FROM users WHERE telegram_id = ? AND expires_at > ? ORDER BY expires_at DESC LIMIT 1",
+        (tg_id, now_iso)
+    )
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return {
+            "id": row[0],
+            "telegram_id": row[1],
+            "uuid": row[2],
+            "expires_at": datetime.fromisoformat(row[3]),
+        }
+    return None
+
+def get_active_user_config(tg_id):
+    conn = sqlite3.connect(DATABASE)
+    cur = conn.cursor()
+    cur.execute("SELECT uuid, expires_at FROM users WHERE telegram_id = ?", (tg_id,))
+    rows = cur.fetchall()
+    conn.close()
+
+    now = datetime.utcnow()
+
+    for uuid, expires_at_str in rows:
+        expires_at = datetime.fromisoformat(expires_at_str)
+        if expires_at > now:
+            return {"uuid": uuid, "expires_at": expires_at}
+
+    return None
+
+def has_active_config(tg_id: int) -> bool:
+    conn = get_connection()
+    c = conn.cursor()
+    now_iso = datetime.utcnow().isoformat()
+    c.execute(
+        "SELECT COUNT(*) FROM users WHERE telegram_id = ? AND expires_at > ?",
+        (tg_id, now_iso)
+    )
+    count = c.fetchone()[0]
+    conn.close()
+    return count > 0

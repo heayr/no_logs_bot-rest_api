@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     XRAY_CONFIG_PATH: str = "/app/xray/config.json"
     XRAY_CONTAINER: str = "xray"
     AVAILABLE_IPS: List[str] = ["185.170.154.69", "185.170.154.75", "185.170.154.76"]
+    TEST_MINUTES: int = 1
     TEST_DAYS: int = 1
     PAID_DAYS: int = 30
     DATABASE_PATH: str = "/test-env/vpn.db"

@@ -62,19 +62,9 @@
             "email": "user_c16a1a82@vpn"
           },
           {
-            "id": "9272acac-06e8-4a44-a547-1b4bddf30f43",
+            "id": "42fc5526-4c4d-42a6-8fb9-7ed1adf8aa21",
             "flow": "xtls-rprx-vision",
-            "email": "user_9272acac@vpn"
-          },
-          {
-            "id": "19e34a3f-2638-447c-a59a-b6967aba51f4",
-            "flow": "xtls-rprx-vision",
-            "email": "user_19e34a3f@vpn"
-          },
-          {
-            "id": "abccf017-21ec-4201-8079-ca6bede47be0",
-            "flow": "xtls-rprx-vision",
-            "email": "user_abccf017@vpn"
+            "email": "user_42fc5526@vpn"
           }
         ]
       },
