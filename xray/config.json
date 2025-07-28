@@ -60,11 +60,6 @@
             "id": "c16a1a82-1765-446c-a967-b066a47162d0",
             "flow": "xtls-rprx-vision",
             "email": "user_c16a1a82@vpn"
-          },
-          {
-            "id": "42fc5526-4c4d-42a6-8fb9-7ed1adf8aa21",
-            "flow": "xtls-rprx-vision",
-            "email": "user_42fc5526@vpn"
           }
         ]
       },

@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     XRAY_PUBLIC_KEY: str = "2IGHoWQM88SBBBOtP5TIZokxwGlUGYV0_Q3qrvoVfhI"
     XRAY_SHORT_ID: str = "02f679de"
     XRAY_SNI: str = "www.cloudflare.com"
+    BOT_NAME: str = "No Logs"
 
    
     class Config:

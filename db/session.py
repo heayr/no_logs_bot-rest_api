@@ -9,6 +9,8 @@ def get_connection():
 def init_db():
     conn = get_connection()
     c = conn.cursor()
+    
+    # Таблица users (без изменений)
     c.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,5 +19,21 @@ def init_db():
             expires_at TEXT
         )
     """)
+    
+    # Новая таблица transactions для отслеживания финансов
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS transactions (
+            transaction_id TEXT PRIMARY KEY,
+            telegram_id INTEGER,
+            amount REAL,
+            days INTEGER,
+            status TEXT,
+            created_at TEXT,
+            updated_at TEXT,
+            payment_provider TEXT,
+            payment_id TEXT
+        )
+    """)
+    
     conn.commit()
     conn.close()
