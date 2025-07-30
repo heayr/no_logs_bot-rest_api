@@ -12,7 +12,7 @@ from utils.formatters import generate_vless_link, format_expiration_message
 from yookassa import Configuration, Payment
 from yookassa.domain.request import PaymentRequest
 from aiogram import Bot
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, input_file
 from io import BytesIO
 from PIL import Image
 import qrcode
@@ -21,6 +21,7 @@ import html
 # Настройка ЮKassa
 Configuration.account_id = "1133698"
 Configuration.secret_key = "test_XzPhDavE0PF5MfRT4zY22gdRU_K0PUsFGX-d8ZWrso0"
+
 
 async def create_payment(tg_id: int, amount: float, order_id: str):
     try:
@@ -62,7 +63,7 @@ async def create_payment(tg_id: int, amount: float, order_id: str):
         payment = Payment.create(payment_request, idempotence_key)
         return payment.confirmation.confirmation_url, payment.id
     except Exception as e:
-        logging.error(f"Ошибка при создании платежа ЮKassa: {str(e)}")
+        logging.error(f"Ошибка при создании платежа ЮKassa: {str(e)}", exc_info=True)
         raise
 
 async def send_payment_link(bot: Bot, chat_id: int, tg_id: int, amount: float, order_id: str):
@@ -85,17 +86,23 @@ async def send_payment_link(bot: Bot, chat_id: int, tg_id: int, amount: float, o
             chat_id,
             f"💳 Оплатите {amount} RUB для активации подписки No Logs VPN.\n\n"
             f"📲 Нажмите кнопку ниже или отсканируйте QR-код.",
-            reply_markup=keyboard
+            reply_markup=keyboard,
+            parse_mode="HTML"
         )
         await bot.send_photo(
             chat_id,
-            photo=qr_io,
-            caption="Отсканируйте QR-код для оплаты"
+            photo=input_file.BufferedInputFile(qr_io.getvalue(), filename="qr_code.png"),
+            caption="Отсканируйте QR-код для оплаты",
+            parse_mode="HTML"
         )
         return payment_url, payment_id
     except Exception as e:
-        logging.error(f"Ошибка при отправке платёжной ссылки: {str(e)}")
-        await bot.send_message(chat_id, f"❌ Ошибка при создании платёжной ссылки: {str(e)}")
+        logging.error(f"Ошибка при отправке платёжной ссылки для tg_id={tg_id}: {str(e)}", exc_info=True)
+        await bot.send_message(
+            chat_id,
+            "❌ Произошла ошибка при создании платёжной ссылки. Пожалуйста, попробуйте позже.",
+            parse_mode="HTML"
+        )
         raise
 
 async def handle_payment_callback(data: dict, bot: Bot):
@@ -140,7 +147,7 @@ async def handle_payment_callback(data: dict, bot: Bot):
             
             await bot.send_photo(
                 tg_id,
-                photo=qr_io,
+                photo=input_file.BufferedInputFile(qr_io.getvalue(), filename="qr_code.png"),
                 caption=caption,
                 parse_mode="HTML"
             )
@@ -150,7 +157,7 @@ async def handle_payment_callback(data: dict, bot: Bot):
             logging.error(f"Ошибка в callback ЮKassa: {data.get('event')}")
             return False
     except Exception as e:
-        logging.error(f"Ошибка обработки callback ЮKassa: {str(e)}")
+        logging.error(f"Ошибка обработки callback ЮKassa: {str(e)}", exc_info=True)
         return False
 
 async def create_paid_user(tg_id: int = 0, days: int = 30, transaction_id: str = None, return_days: bool = False):
@@ -190,7 +197,7 @@ async def create_paid_user(tg_id: int = 0, days: int = 30, transaction_id: str =
         port = 443
 
         link = generate_vless_link(uid, host, port, pbk, sid, sni)
-        days_left = (expires - datetime.utcnow()).days
+        days_left = max(0, (expires - datetime.utcnow()).days)
         message = format_expiration_message(link, days_left)
 
         if return_days:
@@ -198,7 +205,7 @@ async def create_paid_user(tg_id: int = 0, days: int = 30, transaction_id: str =
         return message
 
     except Exception as e:
-        logging.error(f"Ошибка при создании/продлении платного конфига: {str(e)}")
+        logging.error(f"Ошибка при создании/продлении платного конфига: {str(e)}", exc_info=True)
         if return_days:
             return None, None, str(e)
         return f"Ошибка при создании/продлении конфига: {str(e)}"
@@ -233,7 +240,7 @@ async def create_test_user(tg_id: int = 0, minutes: int = 1, return_days: bool =
         return format_expiration_message(link, days_left)
         
     except Exception as e:
-        logging.error(f"Ошибка при создании тестового конфига: {str(e)}")
+        logging.error(f"Ошибка при создании тестового конфига: {str(e)}", exc_info=True)
         if return_days:
             return None, None, str(e)
         return f"Ошибка при создании конфига: {str(e)}"

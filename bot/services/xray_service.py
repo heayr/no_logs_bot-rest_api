@@ -40,24 +40,32 @@ def add_client(uuid: str) -> None:
     _save_config(cfg)
     _reload_xray()
 
+import subprocess
+import logging
+from core.config import settings
+
 def _reload_xray():
-    """Перезапустить контейнер Xray через docker CLI."""
     try:
-        subprocess.run(
+        result = subprocess.run(
             ["docker", "exec", settings.XRAY_CONTAINER, "pkill", "-HUP", "xray"],
             check=True,
-            capture_output=True
+            capture_output=True,
+            text=True
         )
-        logging.info("Xray reloaded (SIGHUP)")
-    except subprocess.CalledProcessError:
-        logging.warning("SIGHUP не сработал, перезапускаю контейнер")
+        logging.info(f"Xray reloaded (SIGHUP): {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        logging.warning(f"SIGHUP не сработал: {e.stderr}. Перезапускаю контейнер")
         try:
-            subprocess.run(["docker", "restart", settings.XRAY_CONTAINER], check=True)
-            logging.info("Xray container restarted")
+            result = subprocess.run(
+                ["docker", "restart", settings.XRAY_CONTAINER],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            logging.info(f"Xray container restarted: {result.stdout}")
         except subprocess.CalledProcessError as e:
-            logging.error(f"Не удалось перезапустить контейнер Xray: {e}")
-
-
+            logging.error(f"Не удалось перезапустить контейнер Xray: {e.stderr}")
+            raise
 
 def remove_client(uuid: str) -> bool:
     try:

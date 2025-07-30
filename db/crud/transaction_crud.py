@@ -37,7 +37,7 @@ def save_pending_transaction(telegram_id: int, transaction_id: str, amount: floa
         logging.debug(f"Транзакция сохранена: transaction_id={transaction_id}, tg_id={telegram_id}")
         return True
     except Exception as e:
-        logging.error(f"Ошибка при сохранении транзакции для tg_id={telegram_id}: {e}")
+        logging.error(f"Ошибка при сохранении транзакции для tg_id={telegram_id}: {e}", exc_info=True)
         return False
 
 def get_confirmed_transaction(telegram_id: int):
@@ -50,10 +50,20 @@ def get_confirmed_transaction(telegram_id: int):
         )
         transaction = cursor.fetchone()
         conn.close()
-        logging.debug(f"Получена транзакция для tg_id={telegram_id}: {transaction}")
-        return transaction
+        if transaction:
+            transaction = {
+                "transaction_id": transaction[0],
+                "telegram_id": transaction[1],
+                "amount": transaction[2],
+                "days": transaction[3],
+                "status": transaction[4]
+            }
+            logging.debug(f"Получена транзакция для tg_id={telegram_id}: {transaction}")
+            return transaction
+        logging.debug(f"Транзакция для tg_id={telegram_id} не найдена")
+        return None
     except Exception as e:
-        logging.error(f"Ошибка при получении транзакции для tg_id={telegram_id}: {e}")
+        logging.error(f"Ошибка при получении транзакции для tg_id={telegram_id}: {e}", exc_info=True)
         return None
 
 def confirm_transaction(transaction_id: str):
@@ -64,6 +74,7 @@ def confirm_transaction(transaction_id: str):
             "UPDATE transactions SET status = ?, updated_at = ? WHERE transaction_id = ? AND status = ?",
             ("completed", datetime.utcnow().isoformat(), transaction_id, "pending")
         )
+        affected_rows = cursor.rowcount
         conn.commit()
         cursor.execute(
             "SELECT transaction_id, telegram_id, amount, days, status FROM transactions WHERE transaction_id = ?",
@@ -71,8 +82,18 @@ def confirm_transaction(transaction_id: str):
         )
         transaction = cursor.fetchone()
         conn.close()
-        logging.debug(f"Транзакция подтверждена: transaction_id={transaction_id}, result={transaction}")
-        return transaction
+        if transaction and affected_rows > 0:
+            transaction = {
+                "transaction_id": transaction[0],
+                "telegram_id": transaction[1],
+                "amount": transaction[2],
+                "days": transaction[3],
+                "status": transaction[4]
+            }
+            logging.debug(f"Транзакция подтверждена: transaction_id={transaction_id}, result={transaction}")
+            return transaction
+        logging.error(f"Транзакция {transaction_id} не найдена или уже подтверждена")
+        return None
     except Exception as e:
-        logging.error(f"Ошибка при подтверждении транзакции {transaction_id}: {e}")
+        logging.error(f"Ошибка при подтверждении транзакции {transaction_id}: {e}", exc_info=True)
         return None
