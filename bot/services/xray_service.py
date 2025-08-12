@@ -34,7 +34,8 @@ def add_client(uuid: str) -> None:
     clients.append({
         "id": uuid,
         "flow": "xtls-rprx-vision",
-        "email": f"user_{uuid[:8]}@vpn"
+        "email": f"user_{uuid[:8]}@vpn",
+        "limitIp": 4
     })
 
     _save_config(cfg)

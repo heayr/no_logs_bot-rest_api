@@ -55,11 +55,6 @@
             "id": "b1856575-c6fc-4d3d-92b8-e63b2dc5380b",
             "flow": "xtls-rprx-vision",
             "email": "user_b1856575@vpn"
-          },
-          {
-            "id": "c16a1a82-1765-446c-a967-b066a47162d0",
-            "flow": "xtls-rprx-vision",
-            "email": "user_c16a1a82@vpn"
           }
         ]
       },

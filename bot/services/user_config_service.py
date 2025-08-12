@@ -1,5 +1,4 @@
-#/bot/services/user_config_service.py
-
+# bot/services/user_config_service.py
 import asyncio
 import logging
 from datetime import datetime, timedelta
@@ -21,7 +20,6 @@ import html
 # Настройка ЮKassa
 Configuration.account_id = "1133698"
 Configuration.secret_key = "test_XzPhDavE0PF5MfRT4zY22gdRU_K0PUsFGX-d8ZWrso0"
-
 
 async def create_payment(tg_id: int, amount: float, order_id: str):
     try:
@@ -95,6 +93,7 @@ async def send_payment_link(bot: Bot, chat_id: int, tg_id: int, amount: float, o
             caption="Отсканируйте QR-код для оплаты",
             parse_mode="HTML"
         )
+        logging.info(f"Платёжная ссылка отправлена для tg_id={tg_id}, order_id={order_id}")
         return payment_url, payment_id
     except Exception as e:
         logging.error(f"Ошибка при отправке платёжной ссылки для tg_id={tg_id}: {str(e)}", exc_info=True)
@@ -107,25 +106,46 @@ async def send_payment_link(bot: Bot, chat_id: int, tg_id: int, amount: float, o
 
 async def handle_payment_callback(data: dict, bot: Bot):
     try:
-        if data.get("event") == "payment.succeeded":
-            payment = data.get("object")
-            order_id = payment["metadata"]["order_id"]
-            tg_id = int(payment["metadata"]["tg_id"])
-            
-            # Подтверждаем транзакцию в базе
+        logging.info(f"Обработка callback ЮKassa: {data}")
+        event = data.get("event")
+        payment = data.get("object")
+        order_id = payment["metadata"]["order_id"]
+        tg_id = int(payment["metadata"]["tg_id"])
+        payment_id = payment["id"]
+
+        if event not in ["payment.succeeded", "payment.waiting_for_capture"]:
+            logging.error(f"Неподдерживаемое событие ЮKassa: {event}")
+            return False
+
+        if event == "payment.waiting_for_capture":
+            logging.info(f"Подтверждение платежа payment_id={payment_id} для order_id={order_id}")
+            try:
+                # Подтверждаем платёж
+                idempotence_key = str(uuid4())  # Уникальный ключ для capture
+                payment_response = Payment.capture(payment_id, idempotence_key)
+                if payment_response.status == "succeeded":
+                    logging.info(f"Платёж payment_id={payment_id} успешно подтверждён")
+                else:
+                    logging.error(f"Не удалось подтвердить платёж payment_id={payment_id}: {payment_response.status}")
+                    return False
+            except Exception as e:
+                logging.error(f"Ошибка при подтверждении платежа payment_id={payment_id}: {str(e)}", exc_info=True)
+                return False
+            return True  # Ждём payment.succeeded
+
+        if event == "payment.succeeded":
+            logging.debug(f"Обработка payment.succeeded для order_id={order_id}, tg_id={tg_id}")
             transaction = await confirm_transaction(order_id)
             if not transaction:
                 logging.error(f"Транзакция {order_id} не найдена или уже подтверждена")
                 return False
-            
-            # Создаём VLESS-ссылку и отправляем пользователю
+
             config_link, expires_days, error = await create_paid_user(tg_id, days=transaction["days"], return_days=True)
             if error:
                 logging.error(f"Ошибка при создании конфига для tg_id={tg_id}: {error}")
                 await bot.send_message(tg_id, f"❌ Ошибка при создании конфига: {error}")
                 return False
-            
-            # Генерируем QR-код для VLESS-ссылки
+
             qr = qrcode.QRCode(version=1, box_size=10, border=4)
             qr.add_data(config_link)
             qr.make(fit=True)
@@ -133,7 +153,7 @@ async def handle_payment_callback(data: dict, bot: Bot):
             qr_io = BytesIO()
             qr_img.save(qr_io, format="PNG")
             qr_io.seek(0)
-            
+
             caption = (
                 f"🔒 <b>Ваш VPN-конфиг готов!</b>\n"
                 f"⏳ Срок действия: {expires_days} дней\n\n"
@@ -144,7 +164,7 @@ async def handle_payment_callback(data: dict, bot: Bot):
                 f"2. Или вставьте ссылку вручную\n"
                 f"3. Для v2RayTun просто вставьте ссылку"
             )
-            
+
             await bot.send_photo(
                 tg_id,
                 photo=input_file.BufferedInputFile(qr_io.getvalue(), filename="qr_code.png"),
@@ -153,9 +173,6 @@ async def handle_payment_callback(data: dict, bot: Bot):
             )
             logging.info(f"VLESS-ссылка выдана для tg_id={tg_id}, order_id={order_id}")
             return True
-        else:
-            logging.error(f"Ошибка в callback ЮKassa: {data.get('event')}")
-            return False
     except Exception as e:
         logging.error(f"Ошибка обработки callback ЮKassa: {str(e)}", exc_info=True)
         return False
@@ -198,11 +215,10 @@ async def create_paid_user(tg_id: int = 0, days: int = 30, transaction_id: str =
 
         link = generate_vless_link(uid, host, port, pbk, sid, sni)
         days_left = max(0, (expires - datetime.utcnow()).days)
-        message = format_expiration_message(link, days_left)
 
         if return_days:
             return link, days_left, None
-        return message
+        return format_expiration_message(link, days_left)
 
     except Exception as e:
         logging.error(f"Ошибка при создании/продлении платного конфига: {str(e)}", exc_info=True)
