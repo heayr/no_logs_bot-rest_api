@@ -13,9 +13,12 @@ from db.session import get_connection
 payment_handler = Router()
 logging.info("Инициализация payment_handler")
 
+
 async def process_payment_request(bot: Bot, chat_id: int, tg_id: int):
-    """Создание платежа и отправка QR-кода."""
-    amount = 5000
+    """Создать платёж и отправить интерфейс оплаты.
+    Отправка сообщений/QR выполняется внутри send_payment_link (во избежание дублей).
+    """
+    amount = 200
     days = 30
     order_id = f"order_{tg_id}_{chat_id}_{int(datetime.now().timestamp())}"
 
@@ -28,20 +31,7 @@ async def process_payment_request(bot: Bot, chat_id: int, tg_id: int):
         await bot.send_message(chat_id, "❌ Ошибка при сохранении транзакции. Попробуйте позже.", parse_mode="HTML")
         raise Exception("Не удалось сохранить транзакцию")
 
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Оплатить подписку", url=payment_url)],
-        [InlineKeyboardButton(text="Вернуться", callback_data="back_to_menu")]
-    ])
-
-    qr_io = await generate_qr_code(payment_url)
-    await bot.send_photo(
-        chat_id,
-        photo=input_file.BufferedInputFile(qr_io.getvalue(), filename="qr_code.png"),
-        caption=f"💳 Оплатите {amount} RUB для активации подписки.\n\n📲 Нажмите кнопку ниже или отсканируйте QR-код.\n\n🔄 Конфиг придёт автоматически после оплаты.",
-        parse_mode="HTML",
-        reply_markup=keyboard
-    )
-    logging.info(f"Платёжная ссылка отправлена для tg_id={tg_id}, order_id={order_id}, payment_id={payment_id}")
+    logging.info(f"Платёжная ссылка выдана (без дублей QR) для tg_id={tg_id}, order_id={order_id}, payment_id={payment_id}")
 
 @payment_handler.message(Command("subscribe"))
 async def subscribe_command(msg: Message, bot: Bot):
@@ -52,7 +42,7 @@ async def subscribe_command(msg: Message, bot: Bot):
         [InlineKeyboardButton(text="Оплатить подписку", callback_data="subscribe")]
     ])
     await msg.answer(
-        "💳 Оплатите 5000 RUB для активации подписки. Конфиг придёт автоматически после оплаты.",
+        "💳 Оплатите 200 RUB для активации подписки. Конфиг придёт автоматически после оплаты.",
         reply_markup=keyboard,
         parse_mode="HTML"
     )
@@ -146,3 +136,13 @@ async def handle_paid_config(callback: CallbackQuery, bot: Bot):
         reply_markup=keyboard
     )
     await callback.answer("Конфиг отправлен!")
+
+@payment_handler.callback_query(lambda c: c.data == "back_to_menu")
+async def handle_back_to_menu(callback: CallbackQuery):
+    # Показываем компактное меню действий
+    menu = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔐 Получить конфиг на 30 дней", callback_data="get_paid_config")],
+        [InlineKeyboardButton(text="💳 Оплатить подписку", callback_data="subscribe")]
+    ])
+    await callback.message.answer("Главное меню. Выберите действие:", reply_markup=menu)
+    await callback.answer()
