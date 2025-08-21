@@ -55,6 +55,12 @@
             "id": "b1856575-c6fc-4d3d-92b8-e63b2dc5380b",
             "flow": "xtls-rprx-vision",
             "email": "user_b1856575@vpn"
+          },
+          {
+            "id": "c2173895-5f05-4ad0-8d69-e8b3c25169ef",
+            "flow": "xtls-rprx-vision",
+            "email": "user_c2173895@vpn",
+            "limitIp": 4
           }
         ]
       },
