@@ -1,25 +1,40 @@
 # bot/keyboards/main_menu.py
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# Главное меню
-main_menu = ReplyKeyboardMarkup(
-keyboard=[
-[KeyboardButton(text="🎁 Получить тест")],
-[KeyboardButton(text="💳 Купить доступ")]
-],
-resize_keyboard=True
-)
+def main_menu() -> InlineKeyboardMarkup:
+    """
+    Создаёт главное меню с кнопками для тестового доступа, оплаты подписки, активного конфига и информации о подписке.
+    """
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🎁 Тестовый доступ", callback_data="get_test_config")],
+        [InlineKeyboardButton(text="💳 Оформить подписку", callback_data="get_paid_config")],
+        [InlineKeyboardButton(text="🔄 Мой конфиг", callback_data="get_active_config")],
+        [InlineKeyboardButton(text="ℹ️ О подписке", callback_data="get_subscription_info")]
+    ])
+    return keyboard
 
+def subscribe_menu() -> InlineKeyboardMarkup:
+    """
+    Создаёт меню для подписки с кнопкой оплаты и возврата в главное меню.
+    """
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💳 Оплатить подписку", callback_data="get_paid_config")],
+        [InlineKeyboardButton(text="⬅️ Вернуться в меню", callback_data="back_to_menu")]
+    ])
+    return keyboard
 
-# Меню покупки (inline)
-paid_menu = InlineKeyboardMarkup(inline_keyboard=[
-[InlineKeyboardButton(text="Подписаться", callback_data="subscribe")],
-[InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_menu")]
-])
+def get_main_inline_menu() -> InlineKeyboardMarkup:
+    """
+    Создаёт главное меню (алиас для main_menu).
+    """
+    return main_menu()
 
-
-# Кнопка возврата
-back_button = InlineKeyboardMarkup(inline_keyboard=[
-[InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_menu")]
-])
+def get_back_to_menu_button() -> InlineKeyboardMarkup:
+    """
+    Создаёт кнопку 'Назад' для возврата в главное меню.
+    """
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⬅️ Вернуться в меню", callback_data="back_to_menu")]
+    ])
+    return keyboard

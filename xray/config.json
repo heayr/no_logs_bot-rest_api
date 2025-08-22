@@ -61,6 +61,12 @@
             "flow": "xtls-rprx-vision",
             "email": "user_c2173895@vpn",
             "limitIp": 4
+          },
+          {
+            "id": "3ae32b84-126c-4636-abc0-8012e1fa755c",
+            "flow": "xtls-rprx-vision",
+            "email": "user_3ae32b84@vpn",
+            "limitIp": 4
           }
         ]
       },
