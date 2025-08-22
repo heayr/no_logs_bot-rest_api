@@ -1,49 +1,48 @@
 # db/crud/transaction_crud.py
-import logging
-from datetime import datetime
-from db.session import get_connection
-import sqlite3
-from typing import Optional, Dict
 
-async def save_pending_transaction(telegram_id: int, transaction_id: str, amount: float, days: int, payment_id: str = None) -> bool:
+
+
+import sqlite3
+from datetime import datetime
+import logging
+from core.config import settings
+
+def save_pending_transaction(telegram_id: int, order_id: str, amount: float, days: int, payment_id: str) -> bool:
+    """
+    Сохраняет транзакцию со статусом 'pending' в базу данных.
+    """
     try:
-        conn = get_connection()
+        conn = sqlite3.connect(settings.DATABASE_PATH)
         cursor = conn.cursor()
+        current_time = datetime.now().isoformat()
         cursor.execute(
             """
             INSERT INTO transactions (transaction_id, telegram_id, amount, days, status, created_at, updated_at, payment_provider, payment_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (
-                transaction_id,
-                telegram_id,
-                amount,
-                days,
-                "pending",
-                datetime.utcnow().isoformat(),
-                datetime.utcnow().isoformat(),
-                "yookassa",
-                payment_id
-            )
+            (order_id, telegram_id, amount, days, "pending", current_time, current_time, "yookassa", payment_id)
         )
         conn.commit()
         conn.close()
-        logging.debug(f"Транзакция сохранена: transaction_id={transaction_id}, tg_id={telegram_id}, payment_id={payment_id}")
+        logging.info(f"Транзакция сохранена: transaction_id={order_id}, telegram_id={telegram_id}, payment_id={payment_id}")
         return True
-    except sqlite3.IntegrityError as e:
-        logging.error(f"Ошибка целостности при сохранении транзакции для tg_id={telegram_id}: {e}", exc_info=True)
-        return False
     except Exception as e:
-        logging.error(f"Ошибка при сохранении транзакции для tg_id={telegram_id}: {e}", exc_info=True)
+        logging.error(f"Ошибка при сохранении транзакции: transaction_id={order_id}, telegram_id={telegram_id}, {str(e)}")
         return False
 
-async def get_confirmed_transaction(telegram_id: int) -> Optional[Dict]:
+def get_confirmed_transaction(telegram_id: int) -> dict | None:
+    """
+    Получает подтверждённую транзакцию (status='succeeded') для пользователя.
+    """
     try:
-        conn = get_connection()
+        conn = sqlite3.connect(settings.DATABASE_PATH)
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT transaction_id, telegram_id, amount, days, status FROM transactions WHERE telegram_id = ? AND status = ?",
-            (telegram_id, "completed")
+            """
+            SELECT transaction_id, telegram_id, amount, days, status, created_at, updated_at, payment_provider, payment_id
+            FROM transactions WHERE telegram_id = ? AND status = ?
+            """,
+            (telegram_id, "succeeded")
         )
         transaction = cursor.fetchone()
         conn.close()
@@ -53,40 +52,69 @@ async def get_confirmed_transaction(telegram_id: int) -> Optional[Dict]:
                 "telegram_id": transaction[1],
                 "amount": transaction[2],
                 "days": transaction[3],
-                "status": transaction[4]
+                "status": transaction[4],
+                "created_at": transaction[5],
+                "updated_at": transaction[6],
+                "payment_provider": transaction[7],
+                "payment_id": transaction[8]
             }
-        logging.debug(f"Транзакция для tg_id={telegram_id} не найдена")
         return None
     except Exception as e:
-        logging.error(f"Ошибка при получении транзакции для tg_id={telegram_id}: {e}", exc_info=True)
+        logging.error(f"Ошибка при получении подтверждённой транзакции: telegram_id={telegram_id}, {str(e)}")
         return None
 
-async def confirm_transaction(transaction_id: str) -> Optional[Dict]:
+def get_transaction_by_id(transaction_id: str) -> dict | None:
+    """
+    Получает транзакцию по ID.
+    """
     try:
-        conn = get_connection()
+        conn = sqlite3.connect(settings.DATABASE_PATH)
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE transactions SET status = ?, updated_at = ? WHERE transaction_id = ? AND status = ?",
-            ("completed", datetime.utcnow().isoformat(), transaction_id, "pending")
-        )
-        affected_rows = cursor.rowcount
-        conn.commit()
-        cursor.execute(
-            "SELECT transaction_id, telegram_id, amount, days, status FROM transactions WHERE transaction_id = ?",
+            """
+            SELECT transaction_id, telegram_id, amount, days, status, created_at, updated_at, payment_provider, payment_id
+            FROM transactions WHERE transaction_id = ?
+            """,
             (transaction_id,)
         )
         transaction = cursor.fetchone()
         conn.close()
-        if transaction and affected_rows > 0:
+        if transaction:
             return {
                 "transaction_id": transaction[0],
                 "telegram_id": transaction[1],
                 "amount": transaction[2],
                 "days": transaction[3],
-                "status": transaction[4]
+                "status": transaction[4],
+                "created_at": transaction[5],
+                "updated_at": transaction[6],
+                "payment_provider": transaction[7],
+                "payment_id": transaction[8]
             }
-        logging.error(f"Транзакция {transaction_id} не найдена или уже подтверждена")
         return None
     except Exception as e:
-        logging.error(f"Ошибка при подтверждении транзакции {transaction_id}: {e}", exc_info=True)
+        logging.error(f"Ошибка при получении транзакции: transaction_id={transaction_id}, {str(e)}")
         return None
+
+def update_transaction_status(transaction_id: str, status: str) -> bool:
+    """
+    Обновляет статус транзакции.
+    """
+    try:
+        conn = sqlite3.connect(settings.DATABASE_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE transactions SET status = ?, updated_at = ? WHERE transaction_id = ?
+            """,
+            (status, datetime.now().isoformat(), transaction_id)
+        )
+        updated = cursor.rowcount > 0
+        conn.commit()
+        conn.close()
+        if updated:
+            logging.info(f"Статус транзакции обновлён: transaction_id={transaction_id}, status={status}")
+        return updated
+    except Exception as e:
+        logging.error(f"Ошибка при обновлении статуса транзакции: transaction_id={transaction_id}, {str(e)}")
+        return False

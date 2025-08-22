@@ -1,29 +1,21 @@
-import asyncio
 import logging
-from datetime import datetime
-from db.session import get_connection
-from bot.services.full_user_removal import full_remove_user
+from db.crud.user_crud import get_expired_users, delete_user_by_uuid
+from bot.services.xray_service import remove_client
 
-async def remove_expired_users():
-    logging.info("🧹 Проверка истёкших пользователей...")
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    # Достаем пользователей с истекшим сроком
-    cursor.execute("SELECT uuid FROM users WHERE expires_at < ?", (datetime.utcnow().isoformat(),))
-    expired = cursor.fetchall()
-
-    if not expired:
-        logging.info("✅ Нет просроченных пользователей")
-        conn.close()
-        return
-
-    for (uuid,) in expired:
-        try:
-            logging.info(f"Удаляем пользователя с uuid={uuid}")
-            await full_remove_user(uuid)  # <--- правильный отступ
-        except Exception as e:
-            logging.error(f"❌ Ошибка при удалении {uuid}: {e}")
-
-    conn.close()
+def remove_expired_users() -> None:
+    """
+    Удаляет пользователей с истёкшим сроком действия из базы данных и Xray.
+    """
+    try:
+        expired_users = get_expired_users()
+        for user in expired_users:
+            telegram_id = user["telegram_id"]
+            uuid = user["uuid"]
+            logging.info(f"Удаление истёкшего пользователя: telegram_id={telegram_id}, uuid={uuid}")
+            if remove_client(uuid):
+                delete_user_by_uuid(uuid)
+                logging.info(f"Пользователь удалён: telegram_id={telegram_id}, uuid={uuid}")
+            else:
+                logging.error(f"Не удалось удалить клиента из Xray: uuid={uuid}")
+    except Exception as e:
+        logging.error(f"Ошибка при удалении истёкших пользователей: {str(e)}")

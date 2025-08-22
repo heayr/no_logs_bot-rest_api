@@ -1,96 +1,96 @@
 # bot/services/xray_service.py
 
-import json
-from core.config import settings
-import json, subprocess, logging, os, signal
-from datetime import datetime, timedelta
-from uuid import uuid4
-from pathlib import Path
-from core.config import settings
 
-CONFIG_PATH=Path(settings.XRAY_CONFIG_PATH)
 
-def _load_config() -> dict:
-    path = Path(settings.XRAY_CONFIG_PATH)
-    if not path.exists():
-        raise FileNotFoundError(f"{path} not found")
-    with path.open("r") as f:
-        return json.load(f)
 
-def _save_config(data: dict) -> None:
-    path = Path(settings.XRAY_CONFIG_PATH)
-    with path.open("w") as f:
-        json.dump(data, f, indent=2)
-
-def add_client(uuid: str) -> None:
-    cfg = _load_config()
-
-    # ищем инбаунд с тегом 'vpn-in'
-    inbound = next((i for i in cfg.get("inbounds", []) if i.get("tag") == "vpn-in"), None)
-    if inbound is None:
-        raise RuntimeError("Inbound with tag 'vpn-in' not found")
-
-    clients = inbound["settings"].setdefault("clients", [])
-    clients.append({
-        "id": uuid,
-        "flow": "xtls-rprx-vision",
-        "email": f"user_{uuid[:8]}@vpn",
-        "limitIp": 4
-    })
-
-    _save_config(cfg)
-    _reload_xray()
-
-import subprocess
 import logging
+import subprocess
+import json
+import os
 from core.config import settings
 
-def _reload_xray():
+def add_client(uuid: str) -> bool:
+    """
+    Добавляет клиента в конфигурацию Xray.
+    """
     try:
-        result = subprocess.run(
-            ["docker", "exec", settings.XRAY_CONTAINER, "pkill", "-HUP", "xray"],
-            check=True,
-            capture_output=True,
-            text=True
-        )
-        logging.info(f"Xray reloaded (SIGHUP): {result.stdout}")
-    except subprocess.CalledProcessError as e:
-        logging.warning(f"SIGHUP не сработал: {e.stderr}. Перезапускаю контейнер")
-        try:
-            result = subprocess.run(
-                ["docker", "restart", settings.XRAY_CONTAINER],
-                check=True,
-                capture_output=True,
-                text=True
-            )
-            logging.info(f"Xray container restarted: {result.stdout}")
-        except subprocess.CalledProcessError as e:
-            logging.error(f"Не удалось перезапустить контейнер Xray: {e.stderr}")
-            raise
-
-def remove_client(uuid: str) -> bool:
-    try:
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        config_path = "/etc/xray/config.json"
+        with open(config_path, 'r') as f:
             config = json.load(f)
 
-        modified = False
+        for inbound in config.get('inbounds', []):
+            if inbound.get('tag') == 'vpn-in':
+                # Формируем email в формате user_<первые_8_символов_uuid>@vpn
+                email = f"user_{uuid[:8]}@vpn"
+                inbound['settings']['clients'].append({
+                    "id": uuid,
+                    "flow": "xtls-rprx-vision",
+                    "email": email,
+                    "limitIp": 4
+                })
+                break
 
-        # Проходим по всем inbound и удаляем клиента с данным UUID
-        for inbound in config.get("inbounds", []):
-            clients = inbound.get("settings", {}).get("clients", [])
-            new_clients = [c for c in clients if c.get("id") != uuid]
+        with open(config_path, 'w') as f:
+            json.dump(config, f, indent=2)
 
-            if len(new_clients) != len(clients):
-                inbound["settings"]["clients"] = new_clients
-                modified = True
-
-        if modified:
-            with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-                json.dump(config, f, indent=2)
+        logging.info(f"Добавление клиента в Xray: uuid={uuid}, email={email}")
+        result = restart_xray()
+        if result:
+            logging.info(f"Клиент успешно добавлен в Xray: uuid={uuid}")
             return True
-
-        return False  # Клиент не найден
-
+        else:
+            logging.error(f"Не удалось перезапустить Xray после добавления клиента: uuid={uuid}")
+            return False
     except Exception as e:
-        print(f"Ошибка при удалении клиента: {e}")
+        logging.error(f"Ошибка при добавлении клиента в Xray: uuid={uuid}, {str(e)}")
         return False
+
+def remove_client(uuid: str) -> bool:
+    """
+    Удаляет клиента из конфигурации Xray.
+    """
+    try:
+        config_path = "/etc/xray/config.json"
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+
+        for inbound in config.get('inbounds', []):
+            if inbound.get('tag') == 'vpn-in':
+                inbound['settings']['clients'] = [
+                    client for client in inbound['settings']['clients']
+                    if client['id'] != uuid
+                ]
+                break
+
+        with open(config_path, 'w') as f:
+            json.dump(config, f, indent=2)
+
+        logging.info(f"Удаление клиента из Xray: uuid={uuid}")
+        result = restart_xray()
+        if result:
+            logging.info(f"Клиент успешно удалён из Xray: uuid={uuid}")
+            return True
+        else:
+            logging.error(f"Не удалось перезапустить Xray после удаления клиента: uuid={uuid}")
+            return False
+    except Exception as e:
+        logging.error(f"Ошибка при удалении клиента из Xray: uuid={uuid}, {str(e)}")
+        return False
+
+def restart_xray() -> bool:
+    """
+    Перезапускает Xray для применения изменений конфигурации.
+    """
+    try:
+        subprocess.run(["pkill", "-SIGHUP", "xray"], check=True)
+        logging.info("Xray перезапущен через SIGHUP")
+        return True
+    except subprocess.CalledProcessError:
+        logging.warning("SIGHUP не сработал. Перезапускаю контейнер")
+        try:
+            subprocess.run(["docker", "restart", "xray"], check=True)
+            logging.info("Контейнер Xray перезапущен: xray")
+            return True
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Ошибка при перезапуске Xray: {str(e)}")
+            return False
